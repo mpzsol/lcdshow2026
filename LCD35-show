@@ -31,6 +31,7 @@ fi
 # 3. Detect LCD controller
 # ---------------------------------------------------------
 LCD_CHIP="unknown"
+
 if dmesg | grep -qi "ili9486"; then
     LCD_CHIP="ili9486"
 elif dmesg | grep -qi "ili9341"; then
@@ -40,21 +41,40 @@ elif dmesg | grep -qi "hx8357"; then
 elif dmesg | grep -qi "st7789"; then
     LCD_CHIP="st7789"
 fi
+
 echo "[+] Detected LCD controller: $LCD_CHIP"
 
 # ---------------------------------------------------------
-# 4. Detect touchscreen controller
+# 4. Manual LCD override (2nd argument)
+# ---------------------------------------------------------
+if [[ -n "$2" ]]; then
+    echo "[+] Manual LCD override: $2"
+    LCD_CHIP="$2"
+fi
+
+# ---------------------------------------------------------
+# 5. Detect touchscreen controller
 # ---------------------------------------------------------
 TOUCH_CHIP="none"
+
 if dmesg | grep -qi "ads7846"; then
     TOUCH_CHIP="ads7846"
 elif dmesg | grep -qi "xpt2046"; then
     TOUCH_CHIP="xpt2046"
 fi
+
 echo "[+] Detected touchscreen: $TOUCH_CHIP"
 
 # ---------------------------------------------------------
-# 5. Rotation support
+# 6. Manual touchscreen override (3rd argument)
+# ---------------------------------------------------------
+if [[ -n "$3" ]]; then
+    echo "[+] Manual touchscreen override: $3"
+    TOUCH_CHIP="$3"
+fi
+
+# ---------------------------------------------------------
+# 7. Rotation support
 # ---------------------------------------------------------
 ROTATION="$1"
 
@@ -65,7 +85,6 @@ case "$ROTATION" in
         ;;
     "")
         echo "[+] No rotation specified — checking auto-rotation..."
-        # Auto-rotation heuristic: if LCD is vertical, assume 90°
         if dmesg | grep -qi "portrait"; then
             ROTATE_PARAM=",rotate=90"
             echo "[+] Auto-rotation: 90 degrees"
@@ -80,4 +99,21 @@ case "$ROTATION" in
         ;;
 esac
 
-# ------------------------------------------------
+# ---------------------------------------------------------
+# 8. Enable SPI
+# ---------------------------------------------------------
+echo "[+] Enabling SPI..."
+sudo raspi-config nonint do_spi 0
+
+# ---------------------------------------------------------
+# 9. Select overlay
+# ---------------------------------------------------------
+sudo mkdir -p /boot/overlays
+
+case "$LCD_CHIP" in
+    ili9486)
+        OVERLAY_URL="https://raw.githubusercontent.com/caliston/waveshare-LCD35-bookworm/main/waveshare35a-overlay.dtb"
+        OVERLAY_NAME="waveshare35a"
+        ;;
+    ili9341)
+        OVERLAY_URL="https://raw.githubusercontent.com/caliston/waves
