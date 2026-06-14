@@ -33,8 +33,8 @@ This project is maintained by **mpzsol**. The code itself is from the wayland po
 ## Install
 
 ```bash
-git clone https://github.com/<your-user>/LCD35-modern.git
-cd LCD35-modern
+git clone https://github.com/mpzsol/lcdshow2026.git
+cd lcdshow2026
 chmod +x LCD35-show LCD35-uninstall
 sudo ./LCD35-show
 
