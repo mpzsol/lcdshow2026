@@ -6,7 +6,7 @@ THIS IS VERY EARLY ALPHA. RUN AT YOUR OWN RISK
 A modern, safe, auto-detecting replacement for the legacy `LCD-show` scripts used
 with 3.5" SPI TFT displays on Raspberry Pi OS Bookworm and Debian Trixie. 
 
-This project is maintained by **mpzsol**. The code itself is from the wayland port repository by caliston (unaffiliated, honestly just pulled this together from an llm to see if it works from my CLI)
+This project is maintained by **mpzsol**. The code itself is from the wayland port repository by caliston (unaffiliated, honestly just did this after an llm found calistons work to go on)
 
 ## Features
 
