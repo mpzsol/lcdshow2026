@@ -1,0 +1,121 @@
+#!/bin/bash
+set -e
+
+echo "[+] Modern LCD35 installer (2026 Edition)"
+echo "[+] Auto-detecting environment..."
+
+# 1. Detect boot config path
+if [ -d /boot/firmware ]; then
+    BOOTCFG="/boot/firmware/config.txt"
+else
+    BOOTCFG="/boot/config.txt"
+fi
+echo "[+] Using config file: $BOOTCFG"
+
+# 2. Detect kernel major version
+KVER=$(uname -r | cut -d. -f1)
+echo "[+] Kernel major version: $KVER"
+
+if [ "$KVER" -ge 6 ]; then
+    echo "[+] Kernel uses full KMS by default — disabling for SPI LCD"
+    DISABLE_KMS=1
+else
+    DISABLE_KMS=0
+fi
+
+# 3. Detect LCD controller
+LCD_CHIP="unknown"
+if dmesg | grep -qi "ili9486"; then
+    LCD_CHIP="ili9486"
+elif dmesg | grep -qi "ili9341"; then
+    LCD_CHIP="ili9341"
+elif dmesg | grep -qi "hx8357"; then
+    LCD_CHIP="hx8357d"
+elif dmesg | grep -qi "st7789"; then
+    LCD_CHIP="st7789"
+fi
+echo "[+] Detected LCD controller: $LCD_CHIP"
+
+# 4. Detect touchscreen controller
+TOUCH_CHIP="none"
+if dmesg | grep -qi "ads7846"; then
+    TOUCH_CHIP="ads7846"
+elif dmesg | grep -qi "xpt2046"; then
+    TOUCH_CHIP="xpt2046"
+fi
+echo "[+] Detected touchscreen: $TOUCH_CHIP"
+
+# 5. Enable SPI
+echo "[+] Enabling SPI..."
+sudo raspi-config nonint do_spi 0
+
+# 6. Select overlay
+sudo mkdir -p /boot/overlays
+
+case "$LCD_CHIP" in
+    ili9486)
+        OVERLAY_URL="https://raw.githubusercontent.com/caliston/waveshare-LCD35-bookworm/main/waveshare35a-overlay.dtb"
+        OVERLAY_NAME="waveshare35a"
+        ;;
+    ili9341)
+        OVERLAY_URL="https://raw.githubusercontent.com/caliston/waveshare-LCD35-bookworm/main/waveshare32b-overlay.dtb"
+        OVERLAY_NAME="waveshare32b"
+        ;;
+    hx8357d)
+        OVERLAY_URL="https://raw.githubusercontent.com/caliston/waveshare-LCD35-bookworm/main/waveshare35b-overlay.dtb"
+        OVERLAY_NAME="waveshare35b"
+        ;;
+    st7789)
+        OVERLAY_URL="https://raw.githubusercontent.com/caliston/waveshare-LCD35-bookworm/main/st7789-overlay.dtb"
+        OVERLAY_NAME="st7789"
+        ;;
+    *)
+        echo "[!] Unknown LCD model — defaulting to ILI9486"
+        OVERLAY_URL="https://raw.githubusercontent.com/caliston/waveshare-LCD35-bookworm/main/waveshare35a-overlay.dtb"
+        OVERLAY_NAME="waveshare35a"
+        ;;
+esac
+
+echo "[+] Installing overlay: $OVERLAY_NAME"
+sudo wget -O /boot/overlays/${OVERLAY_NAME}.dtbo "$OVERLAY_URL"
+
+# 7. Patch config.txt
+echo "[+] Updating $BOOTCFG..."
+
+if [ "$DISABLE_KMS" = "1" ]; then
+    sudo sed -i 's/^dtoverlay=vc4-kms-v3d/#dtoverlay=vc4-kms-v3d/' $BOOTCFG || true
+    sudo sed -i 's/^dtoverlay=vc4-fkms-v3d/#dtoverlay=vc4-fkms-v3d/' $BOOTCFG || true
+fi
+
+sudo tee -a $BOOTCFG >/dev/null <<EOF
+
+# --- Modern LCD35-show (auto-detect, 2026) ---
+dtoverlay=${OVERLAY_NAME}
+hdmi_force_hotplug=1
+hdmi_group=2
+hdmi_mode=1
+hdmi_mode=87
+hdmi_cvt 480 320 60 6 0 0 0
+hdmi_drive=2
+dtparam=spi=on
+disable_fw_kms_setup=1
+EOF
+
+# 8. Touchscreen calibration
+if [[ "$TOUCH_CHIP" != "none" ]]; then
+    echo "[+] Adding touchscreen calibration..."
+    sudo mkdir -p /etc/X11/xorg.conf.d
+
+    sudo tee /etc/X11/xorg.conf.d/99-calibration.conf >/dev/null <<EOF
+Section "InputClass"
+    Identifier "calibration"
+    MatchProduct "ADS7846 Touchscreen"
+    Option "Calibration" "160 3720 3890 130"
+    Option "SwapAxes" "1"
+EndSection
+EOF
+fi
+
+echo "[+] LCD installation complete."
+echo "[+] Reboot to activate the LCD:"
+echo "    sudo reboot"
