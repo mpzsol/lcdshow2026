@@ -1,0 +1,21 @@
+#!/bin/bash
+set -e
+
+if [ -d /boot/firmware ]; then
+    BOOTCFG="/boot/firmware/config.txt"
+else
+    BOOTCFG="/boot/config.txt"
+fi
+
+echo "[+] Restoring HDMI + KMS in $BOOTCFG"
+
+sudo sed -i 's/^#dtoverlay=vc4-kms-v3d/dtoverlay=vc4-kms-v3d/' $BOOTCFG || true
+sudo sed -i '/Modern LCD35-show/d' $BOOTCFG
+sudo sed -i '/dtoverlay=waveshare/d' $BOOTCFG
+sudo sed -i '/hdmi_cvt 480 320/d' $BOOTCFG
+sudo sed -i '/disable_fw_kms_setup/d' $BOOTCFG
+
+sudo rm -f /etc/X11/xorg.conf.d/99-calibration.conf
+
+echo "[+] Reboot to restore HDMI:"
+echo "    sudo reboot"
