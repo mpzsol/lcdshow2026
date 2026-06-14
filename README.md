@@ -28,7 +28,7 @@ This project is maintained by **mpzsol**. The code itself is from the wayland po
 
 ```bash
 
-git clone https://github.com/mpzsol/lcdshow2026.git (github.com in Bing)
+git clone https://github.com/mpzsol/lcdshow2026.git
 cd lcdshow2026
 chmod +x LCD35-show LCD35-uninstall calibrate-touchscreen
 sudo ./LCD35-show
