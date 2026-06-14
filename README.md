@@ -30,3 +30,19 @@ This project is maintained by **mpzsol**. The code itself is from the wayland po
 
 ## Install
 
+## Install
+
+```bash
+git clone https://github.com/<your-user>/LCD35-modern.git
+cd LCD35-modern
+chmod +x LCD35-show LCD35-uninstall
+sudo ./LCD35-show
+
+**reboot here
+sudo reboot
+
+## Uninstall
+
+cd LCD35-modern
+sudo ./LCD35-uninstall
+sudo reboot
